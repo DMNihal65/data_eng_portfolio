@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -45 450 190" fill="currentColor">
+  <title>DMN</title>
+  <!-- D: open left side, chamfered bar ends, round bowl -->
+  <path d="M0 0H80A50 50 0 0 1 80 100H0L22 78H80A28 28 0 0 0 80 22H22Z"/>
+  <!-- M: two stems with arms cut short, chevron below, star in the gap -->
+  <path d="M142 0H170L205.2 40H177.2L164 25V100H142Z"/>
+  <path d="M318 0H290L254.8 40H282.8L296 25V100H318Z"/>
+  <path d="M189.5 54H217.5L230 68.2L242.5 54H270.5L230 100Z"/>
+  <path d="M230 14Q232.6 43.4 257 46Q232.6 48.6 230 62Q227.4 48.6 203 46Q227.4 43.4 230 14Z"/>
+  <!-- the beam -->
+  <path d="M230 -45L231.6 18H228.4Z"/>
+  <path d="M228.6 96L230 145L231.4 96Z"/>
+  <!-- N -->
+  <path d="M330 0H358L426 75.5V0H448V100H420L352 24.4V100H330Z"/>
+</svg>

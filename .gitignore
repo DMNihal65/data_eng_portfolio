@@ -1,0 +1,15 @@
+# Whitelist: this folder also holds drafts (v1-v3), resumes, design tooling and
+# reference material. Only the live portfolio is tracked.
+/*
+!/.gitignore
+!/README.md
+!/index.html
+!/package.json
+!/package-lock.json
+!/vite.config.js
+!/src/
+!/public/
+
+# never commit build output or deps
+node_modules/
+dist/
