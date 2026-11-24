@@ -133,8 +133,9 @@ export function initMenu() {
 // ---- nav theme: follows the sheet that is under the nav ----
 export function initNavTheme() {
   const root = document.documentElement;
-  document.querySelectorAll('.sheet--pine, .sheet--peach, .hero').forEach((sec) => {
-    const theme = sec.classList.contains('sheet--pine') ? 'pine' : sec.classList.contains('sheet--peach') ? 'peach' : 'mist';
+  // (the hero sets the theme itself while it zooms: see initZoomThrough)
+  document.querySelectorAll('.sheet--pine, .sheet--peach').forEach((sec) => {
+    const theme = sec.classList.contains('sheet--pine') ? 'pine' : 'peach';
     ScrollTrigger.create({
       trigger: sec, start: 'top 44px', end: 'bottom 44px',
       onToggle: (self) => { if (self.isActive) root.dataset.nav = theme; else if (root.dataset.nav === theme) root.dataset.nav = 'mist'; },

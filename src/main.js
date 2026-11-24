@@ -4,7 +4,7 @@ import './styles/main.css';
 
 import { ScrollTrigger, initAnchors, initIcons, initCursor, initMagnetic, initMenu, initClock, initCopy, initNavTheme } from './js/core.js';
 import { runLoader, prepareHero, enterHero, initZoomThrough } from './js/hero.js';
-import { initManifesto, initServices, initWork, initSkills, initExperience, initAbout, initContact } from './js/sections.js';
+import { initManifesto, initServices, initWork, initSkills, initExperience, initAbout, initContact, initDepth } from './js/sections.js';
 
 window.scrollTo(0, 0);
 initIcons();
@@ -28,6 +28,7 @@ document.fonts.ready.then(() => {
   initExperience();
   initAbout();
   initContact();
+  initDepth();
   initNavTheme();
   ScrollTrigger.refresh();
 });

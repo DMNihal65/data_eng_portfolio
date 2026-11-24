@@ -149,12 +149,21 @@ export function initZoomThrough() {
   const iChar = document.querySelector('.hero__char--i');
   const others = chars.filter((c) => c !== iChar);
   const spread = [-1.0, 0, 0.6, 1.1, 1.6];
+  const root = document.documentElement;
+  // the manifesto waits under the pinned hero (see .has-zoom in the CSS), so the pine lands straight on it
+  root.classList.add('has-zoom');
   const tl = gsap.timeline({
-    scrollTrigger: { trigger: '.hero', start: 'top top', end: '+=130%', scrub: 0.7, pin: true, anticipatePin: 1 },
+    scrollTrigger: {
+      trigger: '.hero', start: 'top top', end: '+=130%', scrub: 0.7, pin: true, anticipatePin: 1,
+      // the nav turns light as soon as the pine covers the screen
+      onUpdate: (self) => { root.dataset.nav = self.progress > 0.82 ? 'pine' : 'mist'; },
+    },
   });
   tl.to('.hero__top, .hero__bottom', { opacity: 0, y: -30, duration: 0.25, ease: 'power2.in' }, 0)
     .to(others, { x: (k) => window.innerWidth * spread[chars.indexOf(others[k])], opacity: 0, duration: 0.6, ease: 'power2.in' }, 0.05)
     .to(iChar, { scale: 70, transformOrigin: '50% 55%', duration: 1, ease: 'power3.in' }, 0.1)
-    .to('.hero__zoom', { opacity: 1, duration: 0.15, ease: 'none' }, 0.95);
+    .to('.hero__zoom', { opacity: 1, duration: 0.15, ease: 'none' }, 0.9)
+    // pine on pine: the hero steps aside at the very end and the manifesto underneath takes over
+    .set('.hero', { autoAlpha: 0 }, 1.1);
   ScrollTrigger.addEventListener('refreshInit', () => gsap.set(others, { x: 0 }));
 }

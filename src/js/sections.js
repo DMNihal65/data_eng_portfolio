@@ -18,9 +18,20 @@ export function initManifesto() {
     } else if (node.nodeType === 1) { node.classList.add('word'); units.push(node); }
   });
   if (reducedMotion) { gsap.set(units, { opacity: 1 }); return; }
-  gsap.timeline({ scrollTrigger: { trigger: '.manifesto', start: 'top top', end: '+=140%', scrub: 0.5, pin: '.manifesto__pin' } })
-    .to(units, { opacity: 1, ease: 'none', stagger: 0.08, duration: 0.3 })
-    .fromTo(text.querySelectorAll('.pill'), { scale: 0.9 }, { scale: 1, ease: 'back.out(3)', stagger: 0.25, duration: 0.3 }, 0.1);
+  const photo = document.querySelector('.manifesto__photo');
+  const zoomed = document.documentElement.classList.contains('has-zoom');
+  const tl = gsap.timeline({ scrollTrigger: { trigger: '.manifesto', start: 'top top', end: '+=170%', scrub: 0.6, pin: '.manifesto__pin' } });
+  // straight out of the zoom the screen is plain pine: the photo opens upward and the text rises in,
+  // then the words light up one by one as you read
+  if (zoomed) {
+    tl.fromTo(photo, { clipPath: 'inset(100% 0% 0% 0%)', scale: 1.18 }, { clipPath: 'inset(0% 0% 0% 0%)', scale: 1, duration: 0.5, ease: 'power3.out' }, 0)
+      .from('.manifesto__kicker', { y: 24, opacity: 0, duration: 0.2, ease: 'power2.out' }, 0.04)
+      .from(text, { y: 70, opacity: 0, duration: 0.3, ease: 'power3.out' }, 0.06);
+  }
+  tl.to(units, { opacity: 1, ease: 'none', stagger: 0.08, duration: 0.3 }, zoomed ? 0.3 : 0)
+    .fromTo(text.querySelectorAll('.pill'), { scale: 0.9 }, { scale: 1, ease: 'back.out(3)', stagger: 0.25, duration: 0.3 }, zoomed ? 0.4 : 0.1);
+  // a slow drift on the photo while you read
+  tl.to(photo, { yPercent: -4, ease: 'none', duration: tl.duration() }, 0);
 }
 
 // ---------------------------------------------------------------- services: pinned horizontal track
@@ -49,27 +60,30 @@ export function initServices() {
   });
 }
 
-// ---------------------------------------------------------------- work: stacking cards + live wiring
+// ---------------------------------------------------------------- work: stacked cards that wire themselves up
 export function initWork() {
   const cards = [...document.querySelectorAll('.card')];
-  cards.forEach((card) => { drawWires(card); });
+  cards.forEach((card, i) => { card.style.setProperty('--i', i); drawWires(card); });
   ScrollTrigger.addEventListener('refresh', () => cards.forEach(drawWires));
-  if (!reducedMotion) {
-    const t = new SplitText('.work__title', { type: 'words,chars', mask: 'chars' });
-    gsap.from(t.chars, { yPercent: 110, duration: 1, ease: 'expo.out', stagger: 0.025, scrollTrigger: { trigger: '.work', start: 'top 70%', once: true } });
-  }
-  if (window.innerWidth < 860 || reducedMotion) return;
-  // as the next card arrives, the current one sinks back: smaller and dimmer
-  cards.forEach((card, i) => {
-    const next = cards[i + 1];
-    const shade = document.createElement('span');
-    shade.style.cssText = 'position:absolute;inset:0;border-radius:inherit;background:oklch(0.24 0.035 165);opacity:0;pointer-events:none';
-    card.appendChild(shade);
-    if (!next) return;
-    gsap.timeline({ scrollTrigger: { trigger: next, start: 'top bottom', end: 'top 12%', scrub: true } })
-      .to(card, { scale: 0.9 - (cards.length - i) * 0.0, ease: 'none' }, 0)
-      .to(shade, { opacity: 0.35, ease: 'none' }, 0);
+  if (reducedMotion) { cards.forEach((c) => c.querySelector('.flow').classList.add('is-live')); return; }
+  const t = new SplitText('.work__title', { type: 'words,chars', mask: 'chars' });
+  gsap.from(t.chars, { yPercent: 110, duration: 1, ease: 'expo.out', stagger: 0.025, scrollTrigger: { trigger: '.work', start: 'top 70%', once: true } });
+
+  cards.forEach((card) => {
+    const flow = card.querySelector('.flow');
+    const title = new SplitText(card.querySelector('.card__title'), { type: 'lines', mask: 'lines' });
+    const cols = [...flow.querySelectorAll('.flow__col')];
+    // a card arriving: the number lifts in, the title rises, the diagram assembles column by column,
+    // then the wires draw and start carrying current
+    const tl = gsap.timeline({ paused: true })
+      .from(card.querySelector('.card__num'), { yPercent: 40, opacity: 0, duration: 0.9, ease: 'expo.out' }, 0)
+      .from(title.lines, { yPercent: 105, duration: 1, ease: 'expo.out', stagger: 0.08 }, 0.05)
+      .from(card.querySelectorAll('.card__meta, .card__body, .card__tags li'), { y: 18, opacity: 0, duration: 0.8, ease: 'power3.out', stagger: 0.04 }, 0.2);
+    cols.forEach((col, c) => tl.from(col.querySelectorAll('.node'), { scale: 0.6, opacity: 0, duration: 0.7, ease: 'back.out(2)', stagger: 0.08 }, 0.25 + c * 0.22));
+    tl.add(() => flow.classList.add('is-live'), 0.55);
+    ScrollTrigger.create({ trigger: card, start: 'top 75%', once: true, onEnter: () => tl.play() });
   });
+
   // the wires carry current only while their card is on screen
   cards.forEach((card) => {
     const pulses = () => card.querySelectorAll('.pulse');
@@ -77,6 +91,19 @@ export function initWork() {
       trigger: card, start: 'top 85%', end: 'bottom top',
       onToggle: (self) => pulses().forEach((p) => p.__tw && (self.isActive ? p.__tw.play() : p.__tw.pause())),
     });
+  });
+
+  if (window.innerWidth < 860) return;
+  // as the next card slides up, the current one sinks back into the stack: smaller, dimmer
+  cards.forEach((card, i) => {
+    const next = cards[i + 1];
+    if (!next) return;
+    const shade = document.createElement('span');
+    shade.className = 'depth';
+    card.appendChild(shade);
+    gsap.timeline({ scrollTrigger: { trigger: next, start: 'top bottom', end: 'top 12%', scrub: true } })
+      .to(card, { scale: 0.92, ease: 'none' }, 0)
+      .to(shade, { opacity: 0.3, ease: 'none' }, 0);
   });
 }
 
@@ -94,7 +121,7 @@ function drawWires(card) {
       const A = box(a), B = box(b);
       const mx = (A.r + B.l) / 2;
       const d = `M${A.r} ${A.y} C${mx} ${A.y}, ${mx} ${B.y}, ${B.l} ${B.y}`;
-      html += `<path d="${d}"/><path class="pulse" d="${d}"/>`;
+      html += `<path class="wire" pathLength="1" d="${d}"/><path class="pulse" d="${d}"/>`;
     }));
   }
   svg.setAttribute('viewBox', `0 0 ${fr.width} ${fr.height}`);
@@ -112,7 +139,13 @@ export function initSkills() {
   if (!reducedMotion) {
     const t = new SplitText('.skills__title', { type: 'chars', mask: 'chars' });
     gsap.from(t.chars, { yPercent: 110, duration: 1, ease: 'expo.out', stagger: 0.03, scrollTrigger: { trigger: '.skills', start: 'top 70%', once: true } });
-    gsap.from('.group', { y: 30, opacity: 0, duration: 0.9, ease: 'expo.out', stagger: 0.08, scrollTrigger: { trigger: '.skills__groups', start: 'top 85%', once: true } });
+    // each row: the name rises out of its mask, the tools follow
+    document.querySelectorAll('.kit__row').forEach((row) => {
+      gsap.timeline({ scrollTrigger: { trigger: row, start: 'top 88%', once: true } })
+        .from(row.querySelector('.kit__word'), { yPercent: 110, duration: 1.1, ease: 'expo.out' }, 0)
+        .from(row.querySelectorAll('.kit__no, .kit__count'), { opacity: 0, duration: 0.6 }, 0.15)
+        .from(row.querySelectorAll('.kit__tools li'), { y: 14, opacity: 0, duration: 0.6, ease: 'power3.out', stagger: 0.025 }, 0.2);
+    });
   }
   if (reducedMotion) return;
   const loops = [...document.querySelectorAll('.marquee')].map((m) => {
@@ -123,7 +156,13 @@ export function initSkills() {
     return tw;
   });
   let boost = 0;
-  lenis.on('scroll', (e) => { boost = Math.min(Math.abs(e.velocity) * 0.25, 6); });
+  // fast scrolling speeds the rows up and leans them against the direction of travel
+  const skews = [...document.querySelectorAll('.marquee')].map((m) => gsap.quickTo(m, 'skewX', { duration: 0.5, ease: 'power3.out' }));
+  lenis.on('scroll', (e) => {
+    boost = Math.min(Math.abs(e.velocity) * 0.25, 6);
+    const k = gsap.utils.clamp(-7, 7, e.velocity * -0.35);
+    skews.forEach((to) => to(k));
+  });
   gsap.ticker.add(() => {
     boost *= 0.92;
     loops.forEach((tw) => { if (tw.timeScale() >= 0.2) tw.timeScale(gsap.utils.interpolate(tw.timeScale(), 1 + boost, 0.15)); });
@@ -200,5 +239,22 @@ export function initContact() {
       cur[i].w += ((800 - 540 * e) - cur[i].w) * k; cur[i].s += ((75 + 25 * e) - cur[i].s) * k;
       c.style.fontVariationSettings = `"wght" ${cur[i].w.toFixed(0)}, "wdth" ${cur[i].s.toFixed(1)}`;
     });
+  });
+}
+
+// ---------------------------------------------------------------- depth: the section underneath dims as the next sheet slides over
+export function initDepth() {
+  if (reducedMotion) return;
+  const sheets = [...document.querySelectorAll('main > section')];
+  sheets.forEach((sec, i) => {
+    const next = sheets[i + 1];
+    if (!next || sec.classList.contains('hero')) return; // the hero hands over with its own zoom
+    const shade = document.createElement('span');
+    shade.className = 'depth';
+    shade.setAttribute('aria-hidden', 'true');
+    sec.appendChild(shade);
+    // dark sheets can take a deep shade; on the light ones it would turn the mist grey
+    const depth = sec.classList.contains('sheet--pine') ? 0.5 : 0.18;
+    gsap.fromTo(shade, { opacity: 0 }, { opacity: depth, ease: 'none', scrollTrigger: { trigger: next, start: 'top bottom', end: 'top top', scrub: true } });
   });
 }
